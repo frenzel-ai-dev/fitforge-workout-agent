@@ -1,6 +1,6 @@
 # 🏋️‍♂️ FitForge AI - Multi-Agent Workout Planning & Coaching System
 
-An enterprise-grade, autonomous multi-agent fitness and workout planning system built with **Google Gemini (2.5 Flash & Pro)**, **Vertex AI**, and deterministic exercise science tools.
+An enterprise-grade, autonomous multi-agent fitness and workout planning system built with **Google Gemini**, **Vertex AI**, and deterministic exercise science tools.
 
 FitForge AI combines specialized sub-agents, deterministic physiological algorithms, persistent SQLite memory with history compaction, OpenTelemetry tracing with pre-execution intent logging, automated safety guardrails, and Human-in-the-Loop (HITL) approval workflows.
 
@@ -62,18 +62,6 @@ graph TD
     Coordinator -.-> PIIRedactor
     Coordinator -.-> JSONLogger
 ```
-
----
-
-## 📊 Evaluation Rubric Mapping (Target: 95/95)
-
-| Category | Score Target | Implementation in FitForge AI |
-| :--- | :---: | :--- |
-| **1. Tool & Interface Design** | **20 / 20** | Explicit JSON schemas (`TOOL_DECLARATIONS`) for LLM tool calling, strict Pydantic structured output validation (`WorkoutPlan`, `NutritionSummary`), and guided error handling with recovery suggestions (`execute_tool_with_recovery`). |
-| **2. Context & Memory** | **20 / 20** | Persistent SQLite storage (`fitforge_memory.db`) with async I/O (`save_session_async`, `load_session_async`), durable athlete fact extraction, and `HistoryCompactor` for summarizing older conversational turns. |
-| **3. Orchestration & Logic** | **20 / 20** | Multi-agent architecture (`CoordinatorAgent` + 4 specialized sub-agents), dynamic model routing (Gemini 2.5 Flash for fast tasks vs Gemini 2.5 Pro for periodization), input prompt-injection defense, automated output contraindication audits, and Human-in-the-Loop (HITL) approval pauses. |
-| **4. Observability & Tracing** | **20 / 20** | Structured JSON logging (`JSONLogFormatter`), OpenTelemetry-compatible tracing with span hierarchies, pre-execution intent logs (`log_intent`), and automated PII redaction (`PIIRedactor`) for emails, phone numbers, SSNs, and IPs. |
-| **5. Infrastructure & CI/CD** | **15 / 15** | Automated agent evaluation benchmark (`evals/evaluate.py`) running against a 10-case golden dataset (`evals/golden_dataset.json`), Terraform IaC for Cloud Run and GCP Secret Manager (`terraform/`), production `Dockerfile`, and multi-stage GitHub Actions CI (`.github/workflows/ci.yml`). |
 
 ---
 
@@ -175,19 +163,3 @@ fitforge-workout-agent/
 ```
 
 ---
-
-## 🎥 Video Demo Walkthrough
-
-1. **Introduction (0:00 - 0:30):** Problem statement and multi-agent architecture overview.
-2. **Multi-Agent Execution (0:30 - 1:30):** 
-   - Configure athlete profile with constraints (e.g. 4 days/week, knee pain, lean bulk).
-   - Trace execution across Nutrition, Exercise, Periodization, and Safety Specialist sub-agents.
-   - Inspect OpenTelemetry spans and pre-execution intent logs in the Observability tab.
-3. **Human-in-the-Loop (HITL) & Safety (1:30 - 2:15):**
-   - Trigger a high-stakes scenario (e.g. aggressive caloric deficit or high-strain compound lift with injury).
-   - Demonstrate the HITL confirmation card and alternative recommendation selection.
-4. **Persistent Memory & Chat (2:15 - 2:40):**
-   - Interactive coaching chat with fact extraction and history compaction.
-   - Save and reload sessions from SQLite.
-5. **Testing, Evals & IaC (2:40 - 3:00):**
-   - Run `pytest tests/ -v` and `python evals/evaluate.py` (100% composite score).
