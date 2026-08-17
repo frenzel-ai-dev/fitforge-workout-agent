@@ -126,16 +126,3 @@ pytest tests/ -v
 ├── requirements.txt            # Project dependencies
 └── README.md                   # Project documentation
 ```
-
----
-
-## 🎥 Video Demo Outline (for Submission)
-
-1. **Introduction (0:00 - 0:30):** Problem statement and why generic fitness plans fail.
-2. **Architecture (0:30 - 1:00):** Explanation of deterministic tools + Gemini reasoning + observability.
-3. **Live Demonstration (1:00 - 2:15):**
-   - Configure profile (e.g. 4 days/week, Hypertrophy, Dumbbells, Knee pain constraint).
-   - Generate plan: Showcase calculated BMR/TDEE, safe exercise selection, and weekly schedule.
-   - Interactive Chat: Ask coach to substitute an exercise and observe response.
-   - Export plan as Markdown / JSON.
-4. **Testing & CI (2:15 - 2:45):** Show passing pytest suite and GitHub Actions workflow.
