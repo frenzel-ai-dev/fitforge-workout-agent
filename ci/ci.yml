@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: FitForge AI CI/CD Pipeline
 
 on:
   push:
@@ -7,21 +7,24 @@ on:
     branches: [ main, master ]
 
 jobs:
-  test:
+  agent-test-and-eval:
+    name: Unit Tests & Golden Dataset Evals
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Code
+      uses: actions/checkout@v4
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+        cache: 'pip'
 
-    - name: Install dependencies
+    - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
@@ -29,3 +32,28 @@ jobs:
     - name: Run Pytest Test Suite
       run: |
         pytest tests/ -v
+
+    - name: Run Automated Golden Dataset Evaluation Benchmark
+      run: |
+        python evals/evaluate.py
+
+  iac-validation:
+    name: Infrastructure as Code Validation
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: "1.7.0"
+
+    - name: Check Terraform Formatting
+      run: |
+        terraform -chdir=terraform fmt -check
+
+    - name: Validate Terraform Configuration
+      run: |
+        terraform -chdir=terraform init -backend=false
+        terraform -chdir=terraform validate

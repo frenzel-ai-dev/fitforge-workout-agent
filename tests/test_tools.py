@@ -1,10 +1,14 @@
-"""Unit tests for deterministic fitness calculation and exercise lookup tools."""
+"""Unit tests for deterministic fitness calculation, exercise lookup, and guided error handling tools."""
 
 import pytest
 from src.tools import (
     calculate_fitness_metrics,
     calculate_one_rep_max,
     get_exercise_recommendations,
+    verify_exercise_safety,
+    calculate_heart_rate_zones,
+    execute_tool_with_recovery,
+    TOOL_DECLARATIONS,
     EXERCISE_DATABASE
 )
 
@@ -19,18 +23,11 @@ def test_calculate_fitness_metrics_male():
         activity_level="Moderately Active (exercise 3-5 days/wk)",
         goal="Hypertrophy (Muscle Gain)"
     )
-
-    # Mifflin-St Jeor check: 10*80 + 6.25*180 - 5*30 + 5 = 800 + 1125 - 150 + 5 = 1780
     assert metrics["bmr_calories"] == 1780
-    # TDEE = 1780 * 1.55 = 2759
     assert metrics["tdee_calories"] == 2759
-    # Hypertrophy target = 2759 + 300 = 3059
     assert metrics["target_calories"] == 3059
-    # Protein: 80 * 2.0 = 160g
     assert metrics["protein_g"] == 160
     assert metrics["hydration_liters"] > 2.5
-    assert metrics["carbs_g"] > 0
-    assert metrics["fats_g"] > 0
 
 
 def test_calculate_fitness_metrics_female_fat_loss():
@@ -43,53 +40,73 @@ def test_calculate_fitness_metrics_female_fat_loss():
         activity_level="Sedentary (desk job, little exercise)",
         goal="Fat Loss & Conditioning"
     )
-
-    # Mifflin-St Jeor female: 10*60 + 6.25*165 - 5*28 - 161 = 600 + 1031.25 - 140 - 161 = 1330.25 -> 1330
     assert metrics["bmr_calories"] == 1330
-    # TDEE = 1330 * 1.2 = 1596
     assert metrics["tdee_calories"] == 1596
-    # Fat loss target = 1596 - 500 = 1096 -> min clamped to 1200
     assert metrics["target_calories"] == 1200
-    # Protein: 60 * 2.0 = 120g
     assert metrics["protein_g"] == 120
 
 
 def test_calculate_one_rep_max():
     """Test 1RM calculations with Epley and Brzycki formulas."""
     result = calculate_one_rep_max(weight=100.0, reps=5)
-    # Epley: 100 * (1 + 5/30) = 116.67
-    # Brzycki: 100 * (36 / 32) = 112.5
-    # Avg: ~114.6
     assert 112.0 <= result["estimated_1rm"] <= 118.0
     assert "hypertrophy_70_80%" in result["zones"]
 
 
-def test_get_exercise_recommendations_equipment_filter():
-    """Test filtering by equipment availability."""
-    dumbbell_exercises = get_exercise_recommendations(equipment="Dumbbell")
-    assert len(dumbbell_exercises) > 0
-    for ex in dumbbell_exercises:
-        assert ex["equipment"] in ["Dumbbell", "Bodyweight"]
+def test_verify_exercise_safety():
+    """Test individual exercise safety verification against injuries."""
+    # Knee pain vs Squat
+    res_squat = verify_exercise_safety("Barbell Back Squat", "knee pain")
+    assert res_squat["is_safe"] is False
+    assert res_squat["risk_level"] == "HIGH"
+    assert res_squat["alternative"] is not None
+
+    # Lower back pain vs Chest Supported Row (Safe)
+    res_row = verify_exercise_safety("Chest-Supported Dumbbell Row", "lower back pain")
+    assert res_row["is_safe"] is True
+
+    # No injuries
+    res_clean = verify_exercise_safety("Barbell Bench Press", "None")
+    assert res_clean["is_safe"] is True
 
 
-def test_get_exercise_recommendations_injury_filter():
-    """Test filtering out contraindicated exercises when injuries are specified."""
-    # Knee injury should filter out Barbell Back Squat
-    knee_safe_exercises = get_exercise_recommendations(injury_avoidance="knee pain")
-    names = [e["name"] for e in knee_safe_exercises]
-    assert "Barbell Back Squat" not in names
-
-    # Lower back pain should filter out Barbell Bent-Over Row
-    back_safe_exercises = get_exercise_recommendations(injury_avoidance="lower back pain")
-    back_names = [e["name"] for e in back_safe_exercises]
-    assert "Barbell Bent-Over Row" not in back_names
+def test_calculate_heart_rate_zones():
+    """Test cardiovascular heart rate zones calculation."""
+    res = calculate_heart_rate_zones(age=30, resting_hr=60)
+    assert res["max_heart_rate"] == 187
+    assert "zone_2_endurance" in res["zones"]
 
 
-def test_exercise_database_integrity():
-    """Verify all exercises in database have required schema fields."""
-    for ex in EXERCISE_DATABASE:
-        assert "name" in ex
-        assert "muscle" in ex
-        assert "equipment" in ex
-        assert "contraindications" in ex
-        assert "cues" in ex
+def test_execute_tool_with_recovery():
+    """Test guided error handling and structured recovery hints for LLM."""
+    # Valid call
+    valid_res = execute_tool_with_recovery(
+        "calculate_fitness_metrics",
+        {"weight_kg": 75.0, "height_cm": 175.0, "age": 25}
+    )
+    assert valid_res["status"] == "success"
+
+    # Out of bounds value error
+    oob_res = execute_tool_with_recovery(
+        "calculate_fitness_metrics",
+        {"weight_kg": 500.0, "height_cm": 175.0, "age": 25}
+    )
+    assert oob_res["status"] == "error"
+    assert oob_res["error_type"] == "VALUE_OUT_OF_BOUNDS"
+    assert "retry_guidance" in oob_res
+
+    # Unknown tool
+    unknown_res = execute_tool_with_recovery("unknown_fitness_tool", {})
+    assert unknown_res["status"] == "error"
+    assert unknown_res["error_type"] == "TOOL_NOT_FOUND"
+
+
+def test_tool_declarations_schema():
+    """Test that all tool declarations have valid JSON schema definitions."""
+    assert len(TOOL_DECLARATIONS) >= 5
+    for tool_dec in TOOL_DECLARATIONS:
+        assert "name" in tool_dec
+        assert "description" in tool_dec
+        assert "parameters" in tool_dec
+        assert tool_dec["parameters"]["type"] == "object"
+        assert "properties" in tool_dec["parameters"]

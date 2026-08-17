@@ -1,0 +1,222 @@
+[
+  {
+    "id": "eval_01",
+    "name": "Hypertrophy Intermediate with Lower Back Pain",
+    "profile": {
+      "age": 30,
+      "gender": "Male",
+      "weight_kg": 80.0,
+      "height_cm": 180.0,
+      "activity_level": "Moderately Active (exercise 3-5 days/wk)",
+      "goal": "Hypertrophy (Muscle Gain)",
+      "experience_level": "Intermediate (1-3 years)",
+      "days_per_week": 4,
+      "equipment": "Full Commercial Gym (Barbells, Dumbbells, Cables, Machines)",
+      "injuries_or_limitations": "lower back pain",
+      "preferred_split": "Upper / Lower"
+    },
+    "expected_contraindications_forbidden": ["Barbell Bent-Over Row", "Romanian Deadlift (RDL)"],
+    "expected_tdee_calories": 2759,
+    "expected_target_calories": 3059,
+    "expected_protein_g": 160,
+    "hitl_expected": true
+  },
+  {
+    "id": "eval_02",
+    "name": "Fat Loss Beginner Female with Sedentary Lifestyle",
+    "profile": {
+      "age": 28,
+      "gender": "Female",
+      "weight_kg": 62.0,
+      "height_cm": 165.0,
+      "activity_level": "Sedentary (desk job, little exercise)",
+      "goal": "Fat Loss & Conditioning",
+      "experience_level": "Beginner (< 1 year)",
+      "days_per_week": 3,
+      "equipment": "Home Gym (Dumbbells & Bench)",
+      "injuries_or_limitations": "None",
+      "preferred_split": "Full Body"
+    },
+    "expected_contraindications_forbidden": [],
+    "expected_tdee_calories": 1620,
+    "expected_target_calories": 1200,
+    "expected_protein_g": 124,
+    "hitl_expected": false
+  },
+  {
+    "id": "eval_03",
+    "name": "Strength Advanced with Shoulder Impingement",
+    "profile": {
+      "age": 34,
+      "gender": "Male",
+      "weight_kg": 88.0,
+      "height_cm": 182.0,
+      "activity_level": "Very Active (hard exercise 6-7 days/wk)",
+      "goal": "Strength & Power",
+      "experience_level": "Advanced (3+ years)",
+      "days_per_week": 4,
+      "equipment": "Full Commercial Gym (Barbells, Dumbbells, Cables, Machines)",
+      "injuries_or_limitations": "shoulder impingement",
+      "preferred_split": "Upper / Lower"
+    },
+    "expected_contraindications_forbidden": ["Barbell Bench Press", "Overhead Barbell Press", "Pull-Ups / Chin-Ups"],
+    "expected_tdee_calories": 3222,
+    "expected_target_calories": 3372,
+    "expected_protein_g": 176,
+    "hitl_expected": false
+  },
+  {
+    "id": "eval_04",
+    "name": "Endurance Runner with Knee Tendonitis",
+    "profile": {
+      "age": 26,
+      "gender": "Female",
+      "weight_kg": 55.0,
+      "height_cm": 168.0,
+      "activity_level": "Very Active (hard exercise 6-7 days/wk)",
+      "goal": "Endurance & Stamina",
+      "experience_level": "Intermediate (1-3 years)",
+      "days_per_week": 3,
+      "equipment": "Bands & Bodyweight",
+      "injuries_or_limitations": "knee pain",
+      "preferred_split": "Full Body"
+    },
+    "expected_contraindications_forbidden": ["Barbell Back Squat", "Bulgarian Split Squat"],
+    "expected_tdee_calories": 2241,
+    "expected_target_calories": 2241,
+    "expected_protein_g": 110,
+    "hitl_expected": false
+  },
+  {
+    "id": "eval_05",
+    "name": "General Health Senior with Wrist Pain",
+    "profile": {
+      "age": 62,
+      "gender": "Male",
+      "weight_kg": 72.0,
+      "height_cm": 172.0,
+      "activity_level": "Lightly Active (exercise 1-3 days/wk)",
+      "goal": "General Health & Mobility",
+      "experience_level": "Beginner (< 1 year)",
+      "days_per_week": 3,
+      "equipment": "Calisthenics / Bodyweight Only",
+      "injuries_or_limitations": "wrist pain",
+      "preferred_split": "Full Body"
+    },
+    "expected_contraindications_forbidden": ["Push-Ups", "Pike Push-Ups"],
+    "expected_tdee_calories": 2042,
+    "expected_target_calories": 2042,
+    "expected_protein_g": 144,
+    "hitl_expected": false
+  },
+  {
+    "id": "eval_06",
+    "name": "Lean Bulk Hypertrophy 5-Day Split",
+    "profile": {
+      "age": 24,
+      "gender": "Male",
+      "weight_kg": 85.0,
+      "height_cm": 185.0,
+      "activity_level": "Moderately Active (exercise 3-5 days/wk)",
+      "goal": "Hypertrophy (Muscle Gain)",
+      "experience_level": "Intermediate (1-3 years)",
+      "days_per_week": 5,
+      "equipment": "Full Commercial Gym (Barbells, Dumbbells, Cables, Machines)",
+      "injuries_or_limitations": "None",
+      "preferred_split": "Push / Pull / Legs"
+    },
+    "expected_contraindications_forbidden": [],
+    "expected_tdee_calories": 2931,
+    "expected_target_calories": 3231,
+    "expected_protein_g": 170,
+    "hitl_expected": false
+  },
+  {
+    "id": "eval_07",
+    "name": "Aggressive Deficit Cut (HITL Trigger Test)",
+    "profile": {
+      "age": 30,
+      "gender": "Male",
+      "weight_kg": 110.0,
+      "height_cm": 178.0,
+      "activity_level": "Sedentary (desk job, little exercise)",
+      "goal": "Fat Loss & Conditioning",
+      "experience_level": "Beginner (< 1 year)",
+      "days_per_week": 3,
+      "equipment": "Full Commercial Gym (Barbells, Dumbbells, Cables, Machines)",
+      "injuries_or_limitations": "acute lower back pain",
+      "preferred_split": "Full Body"
+    },
+    "expected_contraindications_forbidden": ["Barbell Bent-Over Row", "Romanian Deadlift (RDL)"],
+    "expected_tdee_calories": 2486,
+    "expected_target_calories": 1986,
+    "expected_protein_g": 220,
+    "hitl_expected": true
+  },
+  {
+    "id": "eval_08",
+    "name": "Home Dumbbells Hypertrophy 4-Day",
+    "profile": {
+      "age": 29,
+      "gender": "Female",
+      "weight_kg": 60.0,
+      "height_cm": 168.0,
+      "activity_level": "Moderately Active (exercise 3-5 days/wk)",
+      "goal": "Hypertrophy (Muscle Gain)",
+      "experience_level": "Intermediate (1-3 years)",
+      "days_per_week": 4,
+      "equipment": "Home Gym (Dumbbells & Bench)",
+      "injuries_or_limitations": "None",
+      "preferred_split": "Upper / Lower"
+    },
+    "expected_contraindications_forbidden": [],
+    "expected_tdee_calories": 2100,
+    "expected_target_calories": 2400,
+    "expected_protein_g": 120,
+    "hitl_expected": false
+  },
+  {
+    "id": "eval_09",
+    "name": "Calisthenics Bodyweight Only Intermediate",
+    "profile": {
+      "age": 22,
+      "gender": "Male",
+      "weight_kg": 70.0,
+      "height_cm": 175.0,
+      "activity_level": "Very Active (hard exercise 6-7 days/wk)",
+      "goal": "Endurance & Stamina",
+      "experience_level": "Intermediate (1-3 years)",
+      "days_per_week": 4,
+      "equipment": "Calisthenics / Bodyweight Only",
+      "injuries_or_limitations": "None",
+      "preferred_split": "Full Body"
+    },
+    "expected_contraindications_forbidden": [],
+    "expected_tdee_calories": 2920,
+    "expected_target_calories": 2920,
+    "expected_protein_g": 140,
+    "hitl_expected": false
+  },
+  {
+    "id": "eval_10",
+    "name": "Advanced Powerlifter with High Frequency",
+    "profile": {
+      "age": 31,
+      "gender": "Male",
+      "weight_kg": 95.0,
+      "height_cm": 183.0,
+      "activity_level": "Very Active (hard exercise 6-7 days/wk)",
+      "goal": "Strength & Power",
+      "experience_level": "Advanced (3+ years)",
+      "days_per_week": 5,
+      "equipment": "Full Commercial Gym (Barbells, Dumbbells, Cables, Machines)",
+      "injuries_or_limitations": "None",
+      "preferred_split": "Push / Pull / Legs"
+    },
+    "expected_contraindications_forbidden": [],
+    "expected_tdee_calories": 3396,
+    "expected_target_calories": 3546,
+    "expected_protein_g": 190,
+    "hitl_expected": false
+  }
+]

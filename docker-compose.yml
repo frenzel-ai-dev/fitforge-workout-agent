@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  fitforge-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fitforge-workout-agent
+    ports:
+      - "8501:8501"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+    volumes:
+      - ./fitforge_memory.db:/app/fitforge_memory.db
+    restart: unless-stopped

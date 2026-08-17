@@ -1,10 +1,10 @@
-"""Streamlit UI for FitForge AI - Workout Planning Agent."""
+"""Streamlit UI for FitForge AI - Multi-Agent Workout Planning & Coaching Agent."""
 
 import os
+import json
 import streamlit as st
 from dotenv import load_dotenv
 
-# Load environment variables if .env exists
 load_dotenv()
 
 from src.models import (
@@ -12,13 +12,16 @@ from src.models import (
     FitnessGoal,
     ExperienceLevel,
     EquipmentAvailability,
-    Gender
+    Gender,
+    WorkoutPlan
 )
-from src.agent import WorkoutAgent
+from src.orchestrator import CoordinatorAgent
+from src.memory import SQLiteMemoryStore
+from src.secrets import SecretManager
 
 # Page configuration
 st.set_page_config(
-    page_title="FitForge AI | Workout Planning Agent",
+    page_title="FitForge AI | Multi-Agent Workout Planning",
     page_icon="🏋️‍♂️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -34,15 +37,26 @@ st.markdown("""
         margin-bottom: 0.2rem;
     }
     .sub-header {
-        font-size: 1.1rem;
-        color: #616161;
+        font-size: 1.05rem;
+        color: #555555;
         margin-bottom: 1.5rem;
     }
-    .metric-card {
-        background-color: #f8f9fa;
+    .hitl-alert {
+        background-color: #FFF3E0;
+        border-left: 5px solid #FF9800;
+        padding: 16px;
         border-radius: 8px;
-        padding: 15px;
-        border-left: 4px solid #1E88E5;
+        margin-bottom: 20px;
+    }
+    .agent-badge {
+        display: inline-block;
+        background-color: #E3F2FD;
+        color: #1565C0;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-right: 6px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -56,6 +70,12 @@ def init_session_state():
         st.session_state.workout_plan_result = None
     if "chat_messages" not in st.session_state:
         st.session_state.chat_messages = []
+    if "session_id" not in st.session_state:
+        st.session_state.session_id = "default_session"
+    if "memory_store" not in st.session_state:
+        st.session_state.memory_store = SQLiteMemoryStore()
+    if "hitl_approved" not in st.session_state:
+        st.session_state.hitl_approved = False
 
 
 init_session_state()
@@ -63,13 +83,13 @@ init_session_state()
 # ----------------- SIDEBAR -----------------
 with st.sidebar:
     st.image("https://img.icons8.com/color/96/000000/barbell.png", width=64)
-    st.title("FitForge Setup")
+    st.title("FitForge Multi-Agent")
 
-    # Authentication section
-    with st.expander("🔑 AI & Authentication Settings", expanded=False):
+    # Authentication & Model Selection
+    with st.expander("🔑 AI & Secret Manager", expanded=False):
         auth_mode = st.radio(
-            "Authentication Method",
-            ["Google AI Studio (API Key)", "Vertex AI (ADC)", "Demo / Mock Mode"],
+            "Authentication Mode",
+            ["Google AI Studio (API Key)", "Vertex AI & Secret Manager", "Demo / Mock Mode"],
             index=0
         )
 
@@ -79,45 +99,56 @@ with st.sidebar:
         demo_mode = False
 
         if auth_mode == "Google AI Studio (API Key)":
-            env_key = os.getenv("GEMINI_API_KEY", "")
-            api_key = st.text_input("Gemini API Key", value=env_key, type="password")
+            env_key = SecretManager.get_gemini_api_key(default="")
+            api_key = st.text_input("Gemini API Key", value=env_key or "", type="password")
             if not api_key:
                 st.info("Tip: Get a free key at [Google AI Studio](https://aistudio.google.com/app/api-keys)")
-        elif auth_mode == "Vertex AI (ADC)":
+        elif auth_mode == "Vertex AI & Secret Manager":
             env_proj = os.getenv("GOOGLE_CLOUD_PROJECT", "")
             project = st.text_input("Google Cloud Project ID", value=env_proj)
             location = st.text_input("Location", value=os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1"))
         else:
             demo_mode = True
-            st.success("Demo mode active (rule-based offline generator)")
+            st.success("Demo mode active (deterministic offline generator)")
 
-        model_name = st.selectbox(
-            "Model",
-            ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"],
-            index=0
-        )
+        st.caption("Dynamic Model Routing:")
+        st.markdown("- **Router & Fast Tools:** `gemini-2.5-flash`\n- **Deep Periodization:** `gemini-2.5-pro`")
+
+    # Persistent Session History
+    with st.expander("💾 Saved Sessions", expanded=False):
+        sessions = st.session_state.memory_store.list_sessions()
+        if sessions:
+            selected_sess = st.selectbox(
+                "Load Past Session",
+                options=[s["session_id"] for s in sessions],
+                format_func=lambda sid: f"{sid} ({next((s['title'] for s in sessions if s['session_id'] == sid), '')})"
+            )
+            if st.button("📂 Load Selected Session"):
+                loaded = st.session_state.memory_store.load_session(selected_sess)
+                if loaded and loaded.get("workout_plan"):
+                    st.session_state.workout_plan_result = {
+                        "session_id": loaded["session_id"],
+                        "plan_markdown": loaded.get("chat_history", [{}])[-1].get("content", ""),
+                        "plan_structured": loaded.get("workout_plan"),
+                        "metrics": loaded.get("workout_plan", {}).get("nutrition", {}),
+                        "profile": loaded.get("profile", {}),
+                        "safety_audit": loaded.get("workout_plan", {}).get("safety_audit", {}),
+                        "hitl_request": loaded.get("workout_plan", {}).get("hitl_request", {}),
+                        "trace_summary": {"total_events": 0, "total_duration_ms": 0, "events": [], "spans": []}
+                    }
+                    st.session_state.chat_messages = loaded.get("chat_history", [])
+                    st.session_state.session_id = selected_sess
+                    st.success(f"Loaded session '{selected_sess}'!")
+                    st.rerun()
+        else:
+            st.caption("No saved sessions in SQLite yet.")
 
     st.subheader("👤 Athlete Profile")
 
-    goal = st.selectbox(
-        "Primary Fitness Goal",
-        [g.value for g in FitnessGoal],
-        index=0
-    )
-
-    experience = st.selectbox(
-        "Experience Level",
-        [e.value for e in ExperienceLevel],
-        index=1
-    )
-
+    goal = st.selectbox("Primary Fitness Goal", [g.value for g in FitnessGoal], index=0)
+    experience = st.selectbox("Experience Level", [e.value for e in ExperienceLevel], index=1)
     days_per_week = st.slider("Workout Days Per Week", min_value=2, max_value=6, value=4)
-
-    equipment = st.selectbox(
-        "Available Equipment",
-        [eq.value for eq in EquipmentAvailability],
-        index=0
-    )
+    equipment = st.selectbox("Available Equipment", [eq.value for eq in EquipmentAvailability], index=0)
 
     with st.expander("📊 Biometrics & Metabolism", expanded=False):
         col_a, col_b = st.columns(2)
@@ -151,15 +182,23 @@ with st.sidebar:
         index=0
     )
 
-    generate_clicked = st.button("⚡ Generate Workout Plan", type="primary", use_container_width=True)
+    generate_clicked = st.button("⚡ Generate Multi-Agent Plan", type="primary", use_container_width=True)
 
 # ----------------- MAIN VIEW -----------------
-st.markdown('<div class="main-header">🏋️‍♂️ FitForge AI - Autonomous Workout Planning Agent</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Personalized training routines, injury-aware exercise selection, progressive overload schedules, and science-backed nutrition.</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">🏋️‍♂️ FitForge AI - Multi-Agent Workout Planning System</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="sub-header">'
+    '<span class="agent-badge">🧭 Coordinator Agent</span>'
+    '<span class="agent-badge">🥗 Nutrition Specialist</span>'
+    '<span class="agent-badge">🛠️ Exercise Specialist</span>'
+    '<span class="agent-badge">📈 Periodization Specialist</span>'
+    '<span class="agent-badge">🛡️ Safety Guardrail</span>'
+    '</div>',
+    unsafe_allow_html=True
+)
 
 # Handle Plan Generation
 if generate_clicked:
-    # Instantiate UserProfile
     profile = UserProfile(
         age=age,
         gender=Gender(gender_val),
@@ -174,27 +213,54 @@ if generate_clicked:
         preferred_split=preferred_split
     )
 
-    with st.spinner("🤖 FitForge Agent is analyzing your profile, running fitness calculations, and generating your plan..."):
-        # Initialize agent
-        agent = WorkoutAgent(
+    with st.spinner("🤖 FitForge Multi-Agent Pipeline is executing (Nutrition ➔ Exercise ➔ Periodization ➔ Safety Guardrail)..."):
+        coordinator = CoordinatorAgent(
             api_key=api_key if auth_mode == "Google AI Studio (API Key)" else None,
-            vertexai=(auth_mode == "Vertex AI (ADC)"),
-            project=project if auth_mode == "Vertex AI (ADC)" else None,
+            vertexai=(auth_mode == "Vertex AI & Secret Manager"),
+            project=project if auth_mode == "Vertex AI & Secret Manager" else None,
             location=location,
-            model_name=model_name,
             demo_mode=demo_mode
         )
-        st.session_state.agent = agent
+        st.session_state.agent = coordinator
+        st.session_state.session_id = f"sess_{int(os.times().system * 1000)}"
 
-        # Generate plan
-        result = agent.generate_plan(profile)
+        result = coordinator.generate_plan(profile, session_id=st.session_state.session_id)
         st.session_state.workout_plan_result = result
-        st.session_state.chat_messages = []
+        st.session_state.chat_messages = [
+            {"role": "user", "content": f"Create workout plan for {profile.goal.value}"},
+            {"role": "assistant", "content": result.get("plan_markdown", "")}
+        ]
+        st.session_state.hitl_approved = False
 
 # Display Result if available
 if st.session_state.workout_plan_result:
     result = st.session_state.workout_plan_result
     metrics = result.get("metrics", {})
+    hitl = result.get("hitl_request", {})
+
+    # Human-in-the-Loop (HITL) Alert Card
+    if hitl.get("requires_approval") and not st.session_state.hitl_approved:
+        st.markdown(f"""
+        <div class="hitl-alert">
+            <h4 style="color: #E65100; margin-top: 0;">⚠️ Human-in-the-Loop (HITL) Approval Required</h4>
+            <p><strong>Action Type:</strong> <code>{hitl.get('action_type')}</code> | <strong>Risk Level:</strong> <code>{hitl.get('risk_level')}</code></p>
+            <p>{hitl.get('description')}</p>
+            <p><strong>Potential Risks:</strong></p>
+            <ul>{''.join(f'<li>{r}</li>' for r in hitl.get('potential_risks', []))}</ul>
+            <p><strong>Recommended Alternative:</strong> {hitl.get('recommended_alternative')}</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        col_hitl1, col_hitl2 = st.columns(2)
+        with col_hitl1:
+            if st.button("✅ I Understand and Approve Proposed Plan", type="primary", use_container_width=True):
+                st.session_state.hitl_approved = True
+                st.success("Action confirmed by athlete.")
+                st.rerun()
+        with col_hitl2:
+            if st.button("🛡️ Use Safer Recommended Alternative", use_container_width=True):
+                st.session_state.hitl_approved = True
+                st.info(f"Alternative Applied: {hitl.get('recommended_alternative')}")
 
     # Top Metrics Cards
     st.subheader("🎯 Target Nutritional & Metabolic Baseline")
@@ -212,8 +278,13 @@ if st.session_state.workout_plan_result:
 
     st.divider()
 
-    # Plan Markdown Tabs
-    tab_plan, tab_export, tab_traces = st.tabs(["📋 Workout Routine", "💾 Export Plan", "🔍 Observability & Traces"])
+    # Plan Tabs
+    tab_plan, tab_export, tab_traces, tab_safety = st.tabs([
+        "📋 Workout Routine",
+        "💾 Export & JSON Schemas",
+        "🔍 Multi-Agent OTEL Traces",
+        "🛡️ Safety Guardrail Report"
+    ])
 
     with tab_plan:
         st.markdown(result.get("plan_markdown", ""))
@@ -221,69 +292,101 @@ if st.session_state.workout_plan_result:
     with tab_export:
         st.subheader("Export Workout Plan")
         plan_text = result.get("plan_markdown", "")
-        st.download_button(
-            label="📥 Download Plan as Markdown (.md)",
-            data=plan_text,
-            file_name="fitforge_workout_plan.md",
-            mime="text/markdown",
-            use_container_width=True
-        )
+        col_exp1, col_exp2 = st.columns(2)
+        with col_exp1:
+            st.download_button(
+                label="📥 Download Plan as Markdown (.md)",
+                data=plan_text,
+                file_name="fitforge_workout_plan.md",
+                mime="text/markdown",
+                use_container_width=True
+            )
+        with col_exp2:
+            structured_plan = result.get("plan_structured", {})
+            st.download_button(
+                label="📥 Download Structured JSON (Pydantic Schema)",
+                data=json.dumps(structured_plan, indent=2),
+                file_name="fitforge_workout_plan.json",
+                mime="application/json",
+                use_container_width=True
+            )
 
-        import json
-        st.download_button(
-            label="📥 Download Full Profile & Metrics (.json)",
-            data=json.dumps(result, indent=2),
-            file_name="fitforge_profile_plan.json",
-            mime="application/json",
-            use_container_width=True
-        )
+        with st.expander("🔍 View Raw JSON Schema Payload", expanded=False):
+            st.json(result.get("plan_structured", {}))
 
     with tab_traces:
-        st.subheader("Agent Execution Traces & Latencies")
+        st.subheader("OpenTelemetry Traces & Intent Logs")
         traces = result.get("trace_summary", {})
-        st.write(f"**Total Execution Duration:** {traces.get('total_duration_ms', 0)} ms")
-        st.write(f"**Recorded Steps / Tool Calls:** {traces.get('total_events', 0)}")
+        col_t1, col_t2, col_t3 = st.columns(3)
+        with col_t1:
+            st.metric("Total Pipeline Latency", f"{traces.get('total_duration_ms', 0)} ms")
+        with col_t2:
+            st.metric("Trace ID", str(traces.get("trace_id", "N/A"))[:12] + "...")
+        with col_t3:
+            st.metric("Total Events / Spans", f"{traces.get('total_events', 0)} / {traces.get('total_spans', 0)}")
+
+        st.markdown("#### Recorded Execution Spans")
+        if traces.get("spans"):
+            st.dataframe(traces.get("spans"), use_container_width=True)
+
+        st.markdown("#### Chronological Event Log (with Pre-Execution Intent & PII Redaction)")
         st.json(traces.get("events", []))
+
+    with tab_safety:
+        st.subheader("Automated Biomechanical & Safety Audit")
+        safety = result.get("safety_audit", {})
+        status_color = "green" if safety.get("is_safe", True) else "red"
+        st.markdown(f"**Safety Status:** :{status_color}[{'PASSED' if safety.get('is_safe', True) else 'MODIFIED'}]")
+        st.write(f"**Risk Level:** `{safety.get('risk_level', 'LOW')}`")
+        st.write(f"**Contraindications Checked:** {', '.join(safety.get('contraindications_checked', [])) or 'None'}")
+        if safety.get("flagged_exercises"):
+            st.warning("**Flagged Exercises:**")
+            for f in safety.get("flagged_exercises", []):
+                st.write(f"- {f}")
+        if safety.get("modifications_applied"):
+            st.info("**Modifications Applied by Guardrail:**")
+            for m in safety.get("modifications_applied", []):
+                st.write(f"- {m}")
 
     st.divider()
 
     # Interactive Chat with Coach Agent
-    st.subheader("💬 Chat with your Coach Agent")
-    st.caption("Ask questions, request exercise swaps (e.g. 'Swap squats for leg press'), or adjust volume.")
+    st.subheader("💬 Interactive Multi-Turn Coaching")
+    st.caption("Ask questions, request exercise swaps (e.g. 'Swap squats for leg press'), or tweak caloric targets.")
 
-    # Display chat history
     for msg in st.session_state.chat_messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    # Chat input
     if prompt := st.chat_input("Ask Coach FitForge a question or request a change..."):
-        # Add user message
         st.session_state.chat_messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Get coach response
         with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
+            with st.spinner("Specialist Agents Reasoning..."):
                 if st.session_state.agent:
-                    response = st.session_state.agent.chat(prompt)
+                    chat_res = st.session_state.agent.chat(prompt, session_id=st.session_state.session_id)
+                    reply = chat_res.get("reply", "Response unavailable.")
                 else:
-                    response = "Agent session expired. Please regenerate your plan."
-                st.markdown(response)
-                st.session_state.chat_messages.append({"role": "assistant", "content": response})
+                    coordinator = CoordinatorAgent(demo_mode=demo_mode)
+                    st.session_state.agent = coordinator
+                    chat_res = coordinator.chat(prompt, session_id=st.session_state.session_id)
+                    reply = chat_res.get("reply", "Response unavailable.")
+
+                st.markdown(reply)
+                st.session_state.chat_messages.append({"role": "assistant", "content": reply})
 
 else:
-    # Empty state prompt
-    st.info("👈 Set your fitness goals and equipment in the sidebar and click **'Generate Workout Plan'** to start!")
-    
+    st.info("👈 Set your fitness goals, equipment, and injuries in the sidebar and click **'Generate Multi-Agent Plan'** to start!")
+
     col_feat1, col_feat2, col_feat3 = st.columns(3)
     with col_feat1:
-        st.markdown("### 🛠️ Deterministic Tools")
-        st.markdown("- Mifflin-St Jeor BMR & TDEE calculation\n- Macronutrient partitioning\n- Curated exercise catalog with injury filters")
+        st.markdown("### 🧭 Multi-Agent Pipeline")
+        st.markdown("- Dedicated Nutrition, Exercise, & Periodization sub-agents\n- Dynamic routing to Gemini 2.5 Flash & Pro\n- Deterministic tool schemas & guided error recovery")
     with col_feat2:
-        st.markdown("### 🧠 AI Coach Reasoning")
-        st.markdown("- Built for Gemini 2.5 / Vertex AI\n- Multi-turn interactive adjustments\n- Progressive overload protocols")
+        st.markdown("### 🛡️ Safety & HITL Guardrails")
+        st.markdown("- Automated biomechanical contraindication scanner\n- Human-in-the-Loop approval for high-stakes deficits\n- Input sanitization & prompt injection defense")
     with col_feat3:
-        st.markdown("### 🔍 Observability & CI")
-        st.markdown("- Execution step latency tracing\n- Pytest automated test suite\n- Ready for GitHub submission")
+        st.markdown("### 🔍 Observability & Persistence")
+        st.markdown("- OpenTelemetry-compatible tracing & spans\n- Pre-execution intent logs & PII redaction\n- SQLite persistent memory with history compaction")

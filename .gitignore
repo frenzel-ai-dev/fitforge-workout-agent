@@ -35,6 +35,17 @@ ENV/
 .coverage
 htmlcov/
 
+# Databases & Local Memory Store
+*.db
+*.sqlite
+*.sqlite3
+fitforge_memory.db
+
+# Terraform Local State
+terraform/.terraform/
+terraform/*.tfstate*
+terraform/.terraform.lock.hcl
+
 # IDE & OS
 .DS_Store
 .vscode/
