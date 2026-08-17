@@ -17,21 +17,21 @@ FitForge AI combines deterministic exercise science algorithms with LLM reasonin
 
 ```mermaid
 graph TD
-    User([Athlete / User]) <--> StreamlitUI[Streamlit Web UI (app.py)]
-    StreamlitUI <--> Agent[Workout Planning Agent (src/agent.py)]
+    User(["Athlete / User"]) <--> StreamlitUI["Streamlit Web UI (app.py)"]
+    StreamlitUI <--> Agent["Workout Planning Agent (src/agent.py)"]
     
     subgraph "Deterministic Tool Suite (src/tools.py)"
-        FitnessCalc[BMR / TDEE / Macro Calculator]
-        ExerciseDB[Injury-Aware Exercise Catalog]
-        OneRM[1RM & Intensity Calculator]
+        FitnessCalc["BMR / TDEE / Macro Calculator"]
+        ExerciseDB["Injury-Aware Exercise Catalog"]
+        OneRM["1RM & Intensity Calculator"]
     end
 
     subgraph "Reasoning Engine"
-        Gemini[Google Gemini 2.5 / Vertex AI]
+        Gemini["Google Gemini 2.5 / Vertex AI"]
     end
 
     subgraph "Observability (src/observability.py)"
-        Tracer[Execution Tracer & Latency Logger]
+        Tracer["Execution Tracer & Latency Logger"]
     end
 
     Agent --> FitnessCalc
